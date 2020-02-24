@@ -26,7 +26,6 @@ func main() {
 }
 
 func sendFileToS3(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	//a function to change a profile image
 
 	filename, err := FileUpload(r)
 	//here we call the function we made to get the image and save it
@@ -47,7 +46,7 @@ func sendFileToS3(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		http.Error(w, "Invalid Data on sending message to kafka: "+err2.Error(), http.StatusBadRequest)
 		return
 	}
-	print("File uploaded !")
+	print("File uploaded !\n")
 }
 
 func FileUpload(r *http.Request) (string, error) {
@@ -81,13 +80,15 @@ func s3Upload(bucketName string, filename string) (string, error) {
 
 	// The session the S3 Uploader will use
 	sess := session.Must(session.NewSession(&aws.Config{
-		HTTPClient:  &http.Client{Transport: tr},
+		HTTPClient: &http.Client{Transport: tr},
 		// retrieves them from
 		//* Access Key ID: AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY
 		//* Secret Access Key: AWS_SECRET_ACCESS_KEY or AWS_SECRET_KEY
 		Credentials: credentials.NewEnvCredentials(),
 		Region:      aws.String("eu-west-1"),
 		Endpoint:    aws.String("http://127.0.0.1:9000"),
+		LogLevel:    aws.LogLevel(aws.LogDebugWithEventStreamBody),
+		S3ForcePathStyle: aws.Bool(true),
 	}))
 
 	// Create an uploader with the session and default options
@@ -101,9 +102,10 @@ func s3Upload(bucketName string, filename string) (string, error) {
 
 	// Upload input parameters
 	upParams := &s3manager.UploadInput{
-		Bucket: &bucketName,
-		Key:    aws.String("my-key"),
+		Bucket: aws.String(bucketName),
+		Key:    aws.String("mykey"),
 		Body:   f,
+
 	}
 
 	// Perform upload with options different than the those in the Uploader.
@@ -139,7 +141,7 @@ func sendMessageToKafka(id string, topic string) error {
 				if ev.TopicPartition.Error != nil {
 					fmt.Printf("Delivery failed: %v\n", ev.TopicPartition)
 				} else {
-					fmt.Printf("Delivered message to %v\n", ev.TopicPartition)
+					fmt.Printf("Delivered message at %v\n", ev.Timestamp)
 				}
 			}
 		}
